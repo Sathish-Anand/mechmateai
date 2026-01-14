@@ -1,0 +1,50 @@
+{
+  "name": "mechmate-ai-backend",
+  "version": "1.0.0",
+  "description": "Mechmate AI Backend API",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "nodemon src/server.ts",
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "lint": "echo 'Linting not configured yet'",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mechmate",
+    "ai",
+    "vehicle",
+    "diagnosis",
+    "typescript",
+    "node"
+  ],
+  "author": "Mechmate AI Team",
+  "license": "MIT",
+  "dependencies": {
+    "@types/pg": "^8.16.0",
+    "axios": "^1.13.2",
+    "bcryptjs": "^3.0.3",
+    "cheerio": "^1.1.2",
+    "cloudinary": "^2.8.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "pg": "^8.16.3",
+    "stripe": "^20.1.2"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^25.0.3",
+    "nodemon": "^3.1.11",
+    "typescript": "^5.9.3"
+  }
+}
