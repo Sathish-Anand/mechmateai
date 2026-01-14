@@ -234,7 +234,7 @@ const GuestDiagnosisScreen = () => {
               <TouchableOpacity
                 key={product.id}
                 style={styles.limitedProductCard}
-                onPress={() => openLink(product.url)}
+                onPress={() => openLink(product.searchUrl)}
                 activeOpacity={0.8}
               >
                 <View style={styles.productContent}>
