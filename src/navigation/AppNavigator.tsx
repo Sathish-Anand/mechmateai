@@ -15,6 +15,7 @@ import EmailVerificationScreen from '../screens/auth/EmailVerificationScreen';
 // Main App Screens
 import HomeScreen from '../screens/main/HomeScreen';
 import DiagnosisScreen from '../screens/main/DiagnosisScreen';
+import DiagnosisHistoryScreen from '../screens/main/DiagnosisHistoryScreen';
 import LogbookScreen from '../screens/main/LogbookScreen';
 import GarageScreen from '../screens/main/GarageScreen';
 import PlansScreen from '../screens/main/PlansScreen';
@@ -156,6 +157,13 @@ const MainStackNavigator = () => {
         options={{
           headerShown: false,
           presentation: 'modal'
+        }}
+      />
+      <Stack.Screen
+        name="DiagnosisHistory"
+        component={DiagnosisHistoryScreen}
+        options={{
+          headerShown: false,
         }}
       />
     </Stack.Navigator>

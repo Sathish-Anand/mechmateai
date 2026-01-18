@@ -239,11 +239,12 @@ const HomeScreen = () => {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
-      // Count this month's diagnoses
+      // Count this month's successful diagnoses only
       const { count: diagnosesCount } = await supabase
         .from('diagnoses')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
+        .eq('status', 'COMPLETED')  // Only count successful diagnoses in stats
         .gte('created_at', `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`)
         .lt('created_at', `${currentYear}-${String(currentMonth + 2).padStart(2, '0')}-01`);
 

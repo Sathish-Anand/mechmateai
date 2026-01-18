@@ -58,12 +58,9 @@ export const diagnosisService = {
       throw error;
     }
 
-    // Update usage count (don't throw errors to avoid breaking the diagnosis flow)
-    try {
-      await this.updateUsageCount(user.id);
-    } catch (error) {
-      console.warn('Usage count update failed, but diagnosis was successful:', error);
-    }
+    // Note: Usage count is now updated ONLY when diagnosis is successfully completed
+    // This prevents failed diagnoses from counting against user limits
+    // See updateDiagnosisResponse() method for usage counting
 
     return data;
   },
@@ -96,13 +93,57 @@ export const diagnosisService = {
     return data;
   },
 
-  // Get user's diagnoses
-  async getUserDiagnoses(limit = 20, offset = 0): Promise<Diagnosis[]> {
-    const { data, error } = await supabase
+  // Get user's successful diagnoses only (hide failed ones from history)
+  // Plan-based limits: Essential/Performance get last 10, Ultimate gets unlimited
+  async getUserDiagnoses(limit = 20, offset = 0, userPlanType?: string): Promise<Diagnosis[]> {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Get user's plan type
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('plan_type')
+      .eq('id', user.id)
+      .single();
+
+    const planType = userProfile?.plan_type || userPlanType || 'Basic';
+
+    let query = supabase
       .from('diagnoses')
       .select('*')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .eq('user_id', user.id)
+      .eq('status', 'COMPLETED')  // Only show completed/successful diagnoses
+      .order('created_at', { ascending: false });
+
+    // Apply plan-based limits
+    if (planType === 'Ultimate') {
+      // Ultimate: Full unlimited history
+      query = query.range(offset, offset + limit - 1);
+    } else if (planType === 'Essential' || planType === 'Performance') {
+      // Essential/Performance: Limited to last 5 diagnoses
+      if (offset >= 5) {
+        // If trying to access beyond 5, return empty
+        return [];
+      }
+      const maxLimit = Math.min(limit, 5 - offset);
+      query = query.range(offset, offset + maxLimit - 1);
+    } else if (planType === 'Basic') {
+      // Basic: Limited to most recent 1 diagnosis
+      if (offset >= 1) {
+        // If trying to access beyond 1, return empty
+        return [];
+      }
+      const maxLimit = Math.min(limit, 1 - offset);
+      query = query.range(offset, offset + maxLimit - 1);
+    } else {
+      // Unknown plan type, return empty
+      return [];
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw error;
@@ -152,7 +193,7 @@ export const diagnosisService = {
     return count || 0;
   },
 
-  // Get user's current usage and limits
+  // Get user's current usage and limits (counts only successful diagnoses)
   async getUserUsageInfo(): Promise<{
     usage: { daily_used: number; weekly_used: number; total_used: number };
     limits: { daily: number; weekly: number };
@@ -222,6 +263,18 @@ export const diagnosisService = {
     youtubeVideos: any[],
     productLinks: any[]
   ): Promise<Diagnosis> {
+    // First get the diagnosis to check if it's a user diagnosis (not guest)
+    const { data: diagnosis, error: fetchError } = await supabase
+      .from('diagnoses')
+      .select('user_id, is_guest')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    // Update the diagnosis with AI response
     const { data, error } = await supabase
       .from('diagnoses')
       .update({
@@ -236,6 +289,17 @@ export const diagnosisService = {
 
     if (error) {
       throw error;
+    }
+
+    // Only increment usage count for successful authenticated user diagnoses
+    // Guest diagnoses don't count towards usage limits
+    if (!diagnosis.is_guest && diagnosis.user_id) {
+      try {
+        await this.updateUsageCount(diagnosis.user_id);
+      } catch (error) {
+        console.warn('Usage count update failed, but diagnosis was successful:', error);
+        // Don't throw error to avoid breaking the successful diagnosis flow
+      }
     }
 
     return data;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -50,6 +50,7 @@ interface DiagnosisResult {
 
 const DiagnosisScreen = () => {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
   const [issueDescription, setIssueDescription] = useState('');
   const [obdiiCodes, setObdiiCodes] = useState('');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
@@ -124,7 +125,7 @@ const DiagnosisScreen = () => {
       copyableText += `═════════════════════════════════\n\n`;
 
       copyableText += `🚗 Vehicle: ${vehicleDetails}\n`;
-      copyableText += `📅 Date: ${new Date().toLocaleDateString()}\n\n`;
+      copyableText += `📅 Date: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}\n\n`;
 
       if (diagnosisData.title) {
         copyableText += `📋 Diagnosis: ${diagnosisData.title}\n\n`;
@@ -829,6 +830,11 @@ const DiagnosisScreen = () => {
   const closeDiagnosisModal = () => {
     setShowDiagnosisModal(false);
     setSelectedHistoryDiagnosis(null);
+  };
+
+  const handleSeeOlderDiagnoses = () => {
+    // All users can now access history with plan-based limits
+    navigation.navigate('DiagnosisHistory');
   };
 
   const onRefresh = async () => {
@@ -1551,7 +1557,7 @@ const DiagnosisScreen = () => {
                     {getDiagnosisTitle(item)}
                   </Text>
                   <Text style={styles.historySubtitle}>
-                    {item.make || 'Unknown Vehicle'}: {new Date(item.created_at).toLocaleDateString()}
+                    {item.make || 'Unknown Vehicle'}: {new Date(item.created_at).toLocaleDateString()} at {new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                   </Text>
                 </View>
                 {item.ai_response && (
@@ -1828,6 +1834,15 @@ const DiagnosisScreen = () => {
         <View style={styles.historySection}>
           <Text style={styles.sectionTitle}>Recent Diagnoses</Text>
           {renderRecentDiagnoses()}
+
+          {/* See Older Diagnoses Link */}
+          <TouchableOpacity
+            style={styles.seeMoreLink}
+            onPress={() => handleSeeOlderDiagnoses()}
+          >
+            <Text style={styles.seeMoreText}>📋 See older diagnoses</Text>
+            <Text style={styles.seeMoreArrow}>›</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Vehicle Picker Modal */}
@@ -1906,7 +1921,7 @@ const DiagnosisScreen = () => {
                   <View style={styles.modalDiagnosisContent}>
 
                     <Text style={styles.modalDiagnosisDate}>
-                      📅 {new Date(selectedHistoryDiagnosis.created_at).toLocaleDateString()} at {new Date(selectedHistoryDiagnosis.created_at).toLocaleTimeString()}
+                      📅 {new Date(selectedHistoryDiagnosis.created_at).toLocaleDateString()} at {new Date(selectedHistoryDiagnosis.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </Text>
 
                     {/* Original Issue Description */}
@@ -1948,13 +1963,6 @@ const DiagnosisScreen = () => {
                                 </View>
                               )}
 
-                              {/* Diagnosis Title */}
-                              {selectedHistoryDiagnosis.ai_response.title && (
-                                <Text style={styles.modalDiagnosisTitle}>{selectedHistoryDiagnosis.ai_response.title}</Text>
-                              )}
-
-                              <Text style={styles.modalDiagnosisText}>{selectedHistoryDiagnosis.ai_response.diagnosis || 'No diagnosis available'}</Text>
-
                               {/* Key Info Cards */}
                               <View style={styles.infoCards}>
                                 {selectedHistoryDiagnosis.ai_response.estimatedCost && (
@@ -1973,15 +1981,62 @@ const DiagnosisScreen = () => {
                                 )}
                               </View>
 
-                              <Text style={styles.modalSubTitle}>Possible Causes:</Text>
-                              {selectedHistoryDiagnosis.ai_response.possibleCauses?.map((cause: string, index: number) => (
-                                <Text key={index} style={styles.modalListItem}>• {cause || 'Unknown cause'}</Text>
-                              ))}
+                              {/* Diagnosis Title */}
+                              {selectedHistoryDiagnosis.ai_response.title && (
+                                <Text style={styles.modalDiagnosisTitle}>{selectedHistoryDiagnosis.ai_response.title}</Text>
+                              )}
 
-                              <Text style={styles.modalSubTitle}>Recommendations:</Text>
-                              {selectedHistoryDiagnosis.ai_response.recommendations?.map((rec: string, index: number) => (
-                                <Text key={index} style={styles.modalListItem}>• {rec || 'No recommendation available'}</Text>
-                              ))}
+                              {/* Main Diagnosis - Use formatted text rendering */}
+                              {renderFormattedText(selectedHistoryDiagnosis.ai_response.diagnosis)}
+
+                              {/* Common Causes Section */}
+                              {selectedHistoryDiagnosis.ai_response.commonCauses && (
+                                <>
+                                  <Text style={styles.modalSubTitle}>🔍 Common Causes:</Text>
+                                  <View style={styles.commonCausesContainer}>
+                                    {renderFormattedTextWithTealLabels(selectedHistoryDiagnosis.ai_response.commonCauses)}
+                                  </View>
+                                </>
+                              )}
+
+                              {/* Step-by-step Routine Section */}
+                              {selectedHistoryDiagnosis.ai_response.stepByStepRoutine && (
+                                <>
+                                  <Text style={styles.modalSubTitle}>🔧 Step-by-step Routine:</Text>
+                                  <View style={styles.stepByStepContainer}>
+                                    {renderFormattedTextWithTealLabels(selectedHistoryDiagnosis.ai_response.stepByStepRoutine)}
+                                  </View>
+                                </>
+                              )}
+
+                              {/* Prevention Tips Section */}
+                              {selectedHistoryDiagnosis.ai_response.prevention && (
+                                <>
+                                  <Text style={styles.modalSubTitle}>🛡️ Prevention Tips:</Text>
+                                  <View style={styles.preventionContainer}>
+                                    {renderFormattedTextWithTealLabels(selectedHistoryDiagnosis.ai_response.prevention)}
+                                  </View>
+                                </>
+                              )}
+
+                              {/* Fallback to old format if new fields don't exist */}
+                              {(!selectedHistoryDiagnosis.ai_response.commonCauses && selectedHistoryDiagnosis.ai_response.possibleCauses) && (
+                                <>
+                                  <Text style={styles.modalSubTitle}>🔍 Possible Causes:</Text>
+                                  {selectedHistoryDiagnosis.ai_response.possibleCauses?.map((cause: string, index: number) => (
+                                    <Text key={index} style={styles.modalListItem}>• {cause || 'Unknown cause'}</Text>
+                                  ))}
+                                </>
+                              )}
+
+                              {(!selectedHistoryDiagnosis.ai_response.stepByStepRoutine && selectedHistoryDiagnosis.ai_response.recommendations) && (
+                                <>
+                                  <Text style={styles.modalSubTitle}>💡 Recommendations:</Text>
+                                  {selectedHistoryDiagnosis.ai_response.recommendations?.map((rec: string, index: number) => (
+                                    <Text key={index} style={styles.modalListItem}>• {rec || 'No recommendation available'}</Text>
+                                  ))}
+                                </>
+                              )}
                             </>
                           )}
                         </View>
@@ -2646,6 +2701,25 @@ const styles = StyleSheet.create({
   // History Section
   historySection: {
     marginTop: 20,
+  },
+  seeMoreLink: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#34495e',
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 16,
+  },
+  seeMoreText: {
+    fontSize: 16,
+    color: '#2C8AA6',
+    fontWeight: '600',
+  },
+  seeMoreArrow: {
+    fontSize: 20,
+    color: '#95a5a6',
+    fontWeight: '300',
   },
   sectionTitle: {
     fontSize: 18,
