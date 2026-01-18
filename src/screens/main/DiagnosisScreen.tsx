@@ -21,7 +21,7 @@ import { Video } from 'expo-av';
 import { Picker } from '@react-native-picker/picker';
 import { vehicleService } from '../../services/vehicleService';
 import { diagnosisService } from '../../services/diagnosisService';
-import { groqService } from '../../services/groqService';
+import { edgeFunctionService } from '../../services/edgeFunctionService';
 import { freeYouTubeService } from '../../services/freeYouTubeService';
 import { logbookService } from '../../services/logbookService';
 import { partsService } from '../../services/partsService';
@@ -139,7 +139,7 @@ const DiagnosisScreen = () => {
       }
 
       if (diagnosisData.difficulty) {
-        copyableText += `🔧 Difficulty: ${diagnosisData.difficulty.replace('_', ' ')}\n\n`;
+        copyableText += `🔧 Difficulty: ${(diagnosisData.difficulty || 'Unknown').replace('_', ' ')}\n\n`;
       }
 
       // Add detailed diagnosis
@@ -152,7 +152,7 @@ const DiagnosisScreen = () => {
       if (diagnosisData.recommendations && diagnosisData.recommendations.length > 0) {
         copyableText += `💡 Detailed Recommendations:\n`;
         diagnosisData.recommendations.forEach((rec: string, index: number) => {
-          copyableText += `${index + 1}. ${rec}\n`;
+          copyableText += `${index + 1}. ${rec || 'No recommendation available'}\n`;
         });
         copyableText += `\n`;
       }
@@ -223,14 +223,14 @@ const DiagnosisScreen = () => {
             const boldText = part.slice(2, -2);
             return (
               <Text key={index} style={styles.sectionHeader}>
-                {boldText}
+                {boldText || ''}
               </Text>
             );
           }
           if (part.trim().length > 0) {
             return (
               <Text key={index} style={styles.sectionContent}>
-                {part}
+                {part || ''}
               </Text>
             );
           }
@@ -356,6 +356,13 @@ const DiagnosisScreen = () => {
   };
 
   const handleDiagnosis = async () => {
+    console.log('Diagnosis request context:', {
+      userId: user?.id || null,
+      selectedVehicleId: selectedVehicleId || null,
+      isGuest: !user,
+      guestVehicle: !user ? guestVehicle : null,
+    });
+
     // Validation for authenticated users
     if (user && !selectedVehicleId) {
       Alert.alert('Error', 'Please select a vehicle');
@@ -431,7 +438,7 @@ const DiagnosisScreen = () => {
         }
 
         // Get AI diagnosis with service history context, OBDII codes, and visual evidence
-        const aiDiagnosis = await groqService.getDiagnosis(
+        const aiDiagnosis = await edgeFunctionService.getDiagnosis(
           {
             make: vehicleData.make,
             model: vehicleData.model,
@@ -461,7 +468,7 @@ const DiagnosisScreen = () => {
         );
 
         // Generate real automotive parts recommendations using AI
-        const detailedPartRecommendations = await groqService.generateDetailedPartRecommendations(
+        const detailedPartRecommendations = await edgeFunctionService.generateDetailedPartRecommendations(
           {
             make: vehicleData.make,
             model: vehicleData.model,
@@ -1069,7 +1076,7 @@ const DiagnosisScreen = () => {
                   <View style={styles.infoCard}>
                     <Text style={styles.infoCardTitle}>🔧 Difficulty</Text>
                     <Text style={styles.infoCardValue}>
-                      {diagnosisResult.ai_response.difficulty.replace('_', ' ')}
+                      {(diagnosisResult.ai_response.difficulty || 'Unknown').replace('_', ' ')}
                     </Text>
                   </View>
                 )}
@@ -1126,9 +1133,9 @@ const DiagnosisScreen = () => {
                     <Text style={styles.playIcon}>▶️</Text>
                   </View>
                   <View style={styles.videoInfo}>
-                    <Text style={styles.videoTitle}>{video.title}</Text>
+                    <Text style={styles.videoTitle}>{video.title || 'Repair Video'}</Text>
                     <Text style={styles.videoDescription}>
-                      {video.channelTitle || 'YouTube'} • {video.description?.substring(0, 60)}...
+                      {video.channelTitle || 'YouTube'} • {video.description?.substring(0, 60) || 'Video description not available'}...
                     </Text>
                   </View>
                   <View style={styles.videoAction}>
@@ -1151,9 +1158,9 @@ const DiagnosisScreen = () => {
                     <Text style={styles.playIcon}>▶️</Text>
                   </View>
                   <View style={styles.videoInfo}>
-                    <Text style={styles.videoTitle}>{video.title}</Text>
+                    <Text style={styles.videoTitle}>{video.title || 'Repair Video'}</Text>
                     <Text style={styles.videoDescription}>
-                      {video.channelTitle || 'YouTube'} • {video.description?.substring(0, 60)}...
+                      {video.channelTitle || 'YouTube'} • {video.description?.substring(0, 60) || 'Video description not available'}...
                     </Text>
                   </View>
                   <View style={styles.videoAction}>
@@ -1222,7 +1229,7 @@ const DiagnosisScreen = () => {
                     )}
                   </View>
                   <View style={styles.productInfo}>
-                    <Text style={styles.productName}>{product.name}</Text>
+                    <Text style={styles.productName}>{product.name || 'Automotive Part'}</Text>
                     {product.brand && (
                       <Text style={styles.productBrand}>Brand: {product.brand}</Text>
                     )}
@@ -1281,7 +1288,7 @@ const DiagnosisScreen = () => {
                     )}
                   </View>
                   <View style={styles.productInfo}>
-                    <Text style={styles.productName}>{product.name}</Text>
+                    <Text style={styles.productName}>{product.name || 'Automotive Part'}</Text>
                     {product.brand && (
                       <Text style={styles.productBrand}>Brand: {product.brand}</Text>
                     )}
@@ -1825,7 +1832,7 @@ const DiagnosisScreen = () => {
                                 <Text style={styles.modalDiagnosisTitle}>{selectedHistoryDiagnosis.ai_response.title}</Text>
                               )}
 
-                              <Text style={styles.modalDiagnosisText}>{selectedHistoryDiagnosis.ai_response.diagnosis}</Text>
+                              <Text style={styles.modalDiagnosisText}>{selectedHistoryDiagnosis.ai_response.diagnosis || 'No diagnosis available'}</Text>
 
                               {/* Key Info Cards */}
                               <View style={styles.infoCards}>
@@ -1839,7 +1846,7 @@ const DiagnosisScreen = () => {
                                   <View style={styles.infoCard}>
                                     <Text style={styles.infoCardTitle}>🔧 Difficulty</Text>
                                     <Text style={styles.infoCardValue}>
-                                      {selectedHistoryDiagnosis.ai_response.difficulty.replace('_', ' ')}
+                                      {(selectedHistoryDiagnosis.ai_response.difficulty || 'Unknown').replace('_', ' ')}
                                     </Text>
                                   </View>
                                 )}
@@ -1847,12 +1854,12 @@ const DiagnosisScreen = () => {
 
                               <Text style={styles.modalSubTitle}>Possible Causes:</Text>
                               {selectedHistoryDiagnosis.ai_response.possibleCauses?.map((cause: string, index: number) => (
-                                <Text key={index} style={styles.modalListItem}>• {cause}</Text>
+                                <Text key={index} style={styles.modalListItem}>• {cause || 'Unknown cause'}</Text>
                               ))}
 
                               <Text style={styles.modalSubTitle}>Recommendations:</Text>
                               {selectedHistoryDiagnosis.ai_response.recommendations?.map((rec: string, index: number) => (
-                                <Text key={index} style={styles.modalListItem}>• {rec}</Text>
+                                <Text key={index} style={styles.modalListItem}>• {rec || 'No recommendation available'}</Text>
                               ))}
                             </>
                           )}
@@ -1882,9 +1889,9 @@ const DiagnosisScreen = () => {
                                     <Text style={styles.playIcon}>▶️</Text>
                                   </View>
                                   <View style={styles.videoInfo}>
-                                    <Text style={styles.modalVideoTitle}>{video.title}</Text>
+                                    <Text style={styles.modalVideoTitle}>{video.title || 'Repair Video'}</Text>
                                     <Text style={styles.videoDescription}>
-                                      {video.channelTitle || 'YouTube'} • {video.description?.substring(0, 60)}...
+                                      {video.channelTitle || 'YouTube'} • {video.description?.substring(0, 60) || 'Video description not available'}...
                                     </Text>
                                   </View>
                                   <View style={styles.videoAction}>
@@ -1922,7 +1929,7 @@ const DiagnosisScreen = () => {
                               >
                                 <View style={styles.productContent}>
                                   <View style={styles.productInfo}>
-                                    <Text style={styles.modalProductName}>{product.name}</Text>
+                                    <Text style={styles.modalProductName}>{product.name || 'Automotive Part'}</Text>
                                     {product.brand && (
                                       <Text style={styles.productBrand}>Brand: {product.brand}</Text>
                                     )}
@@ -1934,7 +1941,7 @@ const DiagnosisScreen = () => {
                                     </Text>
                                   </View>
                                   <View style={styles.productPricing}>
-                                    <Text style={styles.modalProductPrice}>{product.price}</Text>
+                                    <Text style={styles.modalProductPrice}>{product.price || 'Price unavailable'}</Text>
                                     <Text style={styles.productEstimate}>Estimated</Text>
                                     <Text style={styles.linkText}>Shop →</Text>
                                   </View>
@@ -2010,7 +2017,7 @@ const DiagnosisScreen = () => {
 
               <ScrollView style={styles.copyTextContainer} contentContainerStyle={styles.copyTextContentContainer}>
                 <Text style={styles.copyTextContent} selectable={true}>
-                  {copyText}
+                  {copyText || 'No diagnosis text available'}
                 </Text>
               </ScrollView>
 

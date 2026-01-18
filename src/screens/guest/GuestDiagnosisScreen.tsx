@@ -14,9 +14,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { groqService } from '../../services/groqService';
-import { freeYouTubeService } from '../../services/freeYouTubeService';
-import { partsService } from '../../services/partsService';
+// Guest diagnosis now requires sign-up for security reasons
+// import { groqService } from '../../services/groqService';
+// import { freeYouTubeService } from '../../services/freeYouTubeService';
+// import { partsService } from '../../services/partsService';
 
 const GuestDiagnosisScreen = () => {
   const [formData, setFormData] = useState({
@@ -45,7 +46,7 @@ const GuestDiagnosisScreen = () => {
 
     setLoading(true);
     try {
-      // Create vehicle object for AI diagnosis
+      // Create vehicle object for limited guest features
       const vehicleData = {
         make: formData.make,
         model: formData.model,
@@ -53,48 +54,39 @@ const GuestDiagnosisScreen = () => {
         odometer: parseInt(formData.odometer) || 0,
       };
 
-      // Get AI diagnosis from Groq (no service history for guest)
-      const aiDiagnosis = await groqService.getDiagnosis(
-        vehicleData,
-        formData.issueDescription.trim(),
-        [] // Empty service history for guest users
-      );
+      console.log('Getting limited guest diagnosis (YouTube + Parts only)...');
 
-      // Get YouTube videos for guest (limited to 2)
-      const youtubeVideos = await freeYouTubeService.getEnhancedVideoRecommendations(
+      // Import services for guest diagnosis
+      const { freeYouTubeService } = require('../../services/freeYouTubeService');
+
+      // Get YouTube videos (no AI required - just keyword search)
+      const youtubeVideos = await freeYouTubeService.getDiagnosticVideos(
         formData.make,
         formData.model,
         parseInt(formData.year),
-        aiDiagnosis
+        formData.issueDescription
       );
 
-      // Get parts recommendations for guest (limited)
-      const detailedPartRecommendations = await groqService.generateDetailedPartRecommendations(
-        vehicleData,
-        aiDiagnosis
-      );
+      // Generate simple parts recommendations based on issue keywords
+      const partRecommendations = generateGuestPartRecommendations(formData.issueDescription, vehicleData);
 
-      const partRecommendations = await partsService.getPartRecommendations(
-        vehicleData,
-        detailedPartRecommendations
-      );
+      // Create limited guest diagnosis result
+      const guestDiagnosisResult = {
+        id: `guest-diagnosis-${Date.now()}`,
+        ai_response: null, // No AI for guests
+        youtube_videos: youtubeVideos.slice(0, 2), // Limit to 2 videos for guests
+        product_links: partRecommendations.slice(0, 2), // Limit to 2 parts for guests
+        status: 'COMPLETED',
+        created_at: new Date().toISOString()
+      };
 
-      // Set guest result with limited data
-      setDiagnosisResult({
-        ai_response: {
-          ...aiDiagnosis,
-          // Hide detailed recommendations and causes for guests
-          recommendations: [], // Hide recommendations
-          possibleCauses: [], // Hide detailed causes
-        },
-        youtube_videos: youtubeVideos.slice(0, 2), // Limit to 2 videos
-        product_links: partRecommendations.slice(0, 2), // Limit to 2 parts
-        isGuest: true,
-      });
+      setDiagnosisResult(guestDiagnosisResult);
+
+      console.log('Guest diagnosis completed successfully (limited features)');
 
     } catch (error: any) {
       console.error('Error getting guest diagnosis:', error);
-      Alert.alert('Error', error.message || 'Failed to get diagnosis');
+      Alert.alert('Error', error.message || 'Failed to get repair recommendations');
     } finally {
       setLoading(false);
     }
@@ -123,69 +115,196 @@ const GuestDiagnosisScreen = () => {
     }
   };
 
+  // Helper function to generate basic part recommendations for guests based on keywords
+  const generateGuestPartRecommendations = (issueDescription: string, vehicle: any) => {
+    const issue = issueDescription.toLowerCase();
+    const parts = [];
+
+    // Generate Google Shopping URLs for parts
+    const generateGoogleShoppingURL = (vehicleInfo: any, partName: string) => {
+      const vehicleString = `${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model}`;
+      const searchQuery = `${vehicleString} ${partName}`;
+      return `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(searchQuery)}`;
+    };
+
+    // Enhanced keyword-based part recommendations with better matching
+    if (issue.includes('engine') || issue.includes('rough idle') || issue.includes('misfire') || issue.includes('stall') || issue.includes('hesitat')) {
+      parts.push({
+        id: 'part_1',
+        name: 'Spark Plugs',
+        price: '$15-$45',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'spark plugs')
+      });
+      parts.push({
+        id: 'part_2',
+        name: 'Ignition Coil',
+        price: '$50-$150',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'ignition coil')
+      });
+    } else if (issue.includes('brake') || issue.includes('squeal') || issue.includes('grinding') || issue.includes('stopping') || issue.includes('pedal')) {
+      parts.push({
+        id: 'part_1',
+        name: 'Brake Pads',
+        price: '$25-$75',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'brake pads')
+      });
+      parts.push({
+        id: 'part_2',
+        name: 'Brake Rotors',
+        price: '$40-$120',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'brake rotors')
+      });
+    } else if (issue.includes('battery') || issue.includes('starting') || issue.includes('start') || issue.includes('electrical') || issue.includes('dead') || issue.includes('won\'t start')) {
+      parts.push({
+        id: 'part_1',
+        name: 'Car Battery',
+        price: '$80-$200',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'car battery')
+      });
+      parts.push({
+        id: 'part_2',
+        name: 'Starter Motor',
+        price: '$150-$400',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'starter motor')
+      });
+    } else if (issue.includes('oil') || issue.includes('leak') || issue.includes('change') || issue.includes('maintenance')) {
+      parts.push({
+        id: 'part_1',
+        name: 'Oil Filter',
+        price: '$5-$15',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'oil filter')
+      });
+      parts.push({
+        id: 'part_2',
+        name: 'Motor Oil',
+        price: '$20-$50',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'motor oil')
+      });
+    } else if (issue.includes('tire') || issue.includes('tyre') || issue.includes('wheel') || issue.includes('flat')) {
+      parts.push({
+        id: 'part_1',
+        name: 'Tire',
+        price: '$60-$200',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'tire')
+      });
+      parts.push({
+        id: 'part_2',
+        name: 'Tire Repair Kit',
+        price: '$10-$30',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'tire repair kit')
+      });
+    } else if (issue.includes('cooling') || issue.includes('overheat') || issue.includes('coolant') || issue.includes('radiator') || issue.includes('temperature')) {
+      parts.push({
+        id: 'part_1',
+        name: 'Coolant',
+        price: '$10-$25',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'coolant')
+      });
+      parts.push({
+        id: 'part_2',
+        name: 'Radiator',
+        price: '$100-$300',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'radiator')
+      });
+    } else if (issue.includes('transmission') || issue.includes('gear') || issue.includes('shift') || issue.includes('clutch')) {
+      parts.push({
+        id: 'part_1',
+        name: 'Transmission Fluid',
+        price: '$15-$40',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'transmission fluid')
+      });
+      parts.push({
+        id: 'part_2',
+        name: 'Transmission Filter',
+        price: '$20-$60',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'transmission filter')
+      });
+    } else if (issue.includes('suspension') || issue.includes('shock') || issue.includes('strut') || issue.includes('bounce') || issue.includes('rough ride')) {
+      parts.push({
+        id: 'part_1',
+        name: 'Shock Absorber',
+        price: '$40-$120',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'shock absorber')
+      });
+      parts.push({
+        id: 'part_2',
+        name: 'Strut',
+        price: '$60-$180',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'strut')
+      });
+    } else if (issue.includes('noise') || issue.includes('sound') || issue.includes('rattle') || issue.includes('squeaking')) {
+      // For noise issues, suggest common noise-causing parts
+      if (issue.includes('belt') || issue.includes('squeal')) {
+        parts.push({
+          id: 'part_1',
+          name: 'Serpentine Belt',
+          price: '$20-$50',
+          searchUrl: generateGoogleShoppingURL(vehicle, 'serpentine belt')
+        });
+      } else {
+        parts.push({
+          id: 'part_1',
+          name: 'Motor Mount',
+          price: '$30-$100',
+          searchUrl: generateGoogleShoppingURL(vehicle, 'motor mount')
+        });
+      }
+      parts.push({
+        id: 'part_2',
+        name: 'Air Filter',
+        price: '$10-$25',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'air filter')
+      });
+    } else if (issue.includes('light') || issue.includes('headlight') || issue.includes('bulb') || issue.includes('electrical')) {
+      parts.push({
+        id: 'part_1',
+        name: 'Headlight Bulb',
+        price: '$15-$60',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'headlight bulb')
+      });
+      parts.push({
+        id: 'part_2',
+        name: 'Fuse',
+        price: '$1-$10',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'automotive fuse')
+      });
+    } else {
+      // More intelligent default based on common maintenance items
+      parts.push({
+        id: 'part_1',
+        name: 'Air Filter',
+        price: '$10-$25',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'air filter')
+      });
+      parts.push({
+        id: 'part_2',
+        name: 'Spark Plugs',
+        price: '$15-$45',
+        searchUrl: generateGoogleShoppingURL(vehicle, 'spark plugs')
+      });
+    }
+
+    return parts.slice(0, 2); // Return max 2 parts for guests
+  };
+
   const renderGuestDiagnosisResults = () => {
-    if (!diagnosisResult || !diagnosisResult.ai_response) return null;
+    if (!diagnosisResult) return null;
 
     return (
       <View style={styles.resultsSection}>
         <Text style={styles.sectionTitle}>🔍 Guest Diagnosis Results</Text>
 
-        {/* Blurred AI Response */}
-        <View style={styles.aiResponseCard}>
-          <Text style={styles.cardTitle}>🤖 AI Diagnosis (Limited Preview)</Text>
-
-          {/* Urgency Level Banner */}
-          {diagnosisResult.ai_response.urgencyLevel && (
-            <View style={[styles.urgencyBanner, styles[`urgency${diagnosisResult.ai_response.urgencyLevel}`]]}>
-              <Text style={styles.urgencyText}>
-                {diagnosisResult.ai_response.urgencyLevel === 'CRITICAL' && '🚨 CRITICAL'}
-                {diagnosisResult.ai_response.urgencyLevel === 'HIGH' && '⚠️ HIGH PRIORITY'}
-                {diagnosisResult.ai_response.urgencyLevel === 'MEDIUM' && '🟡 MEDIUM PRIORITY'}
-                {diagnosisResult.ai_response.urgencyLevel === 'LOW' && '🟢 LOW PRIORITY'}
-              </Text>
-            </View>
-          )}
-
-          {/* Blurred diagnosis text */}
-          <View style={styles.blurredContent}>
-            <Text style={styles.blurredText}>
-              {diagnosisResult.ai_response.diagnosis.substring(0, 50)}...
-            </Text>
-            <View style={styles.blurOverlay} />
-          </View>
-
-          {/* Show only cost and difficulty */}
-          <View style={styles.infoCards}>
-            {diagnosisResult.ai_response.estimatedCost && (
-              <View style={styles.infoCard}>
-                <Text style={styles.infoCardTitle}>💰 Estimated Cost</Text>
-                <Text style={styles.infoCardValue}>{diagnosisResult.ai_response.estimatedCost}</Text>
-              </View>
-            )}
-            {diagnosisResult.ai_response.difficulty && (
-              <View style={styles.infoCard}>
-                <Text style={styles.infoCardTitle}>🔧 Difficulty</Text>
-                <Text style={styles.infoCardValue}>
-                  {diagnosisResult.ai_response.difficulty.replace('_', ' ')}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Hidden sections with upgrade prompt */}
-          <View style={styles.hiddenSection}>
-            <Text style={styles.hiddenSectionTitle}>🔒 Detailed Analysis</Text>
-            <Text style={styles.hiddenSectionText}>
-              Sign up to see detailed possible causes, step-by-step repair instructions, and expert recommendations.
-            </Text>
-            <TouchableOpacity
-              style={styles.upgradeButton}
-              onPress={handleViewFullResults}
-            >
-              <Text style={styles.upgradeButtonText}>Sign Up for Full Results</Text>
-            </TouchableOpacity>
-          </View>
+        {/* Guest Feature Notice */}
+        <View style={styles.guestNotice}>
+          <Text style={styles.guestNoticeText}>
+            🎁 Guest Preview: 2 YouTube videos + 2 part recommendations
+          </Text>
+          <Text style={styles.guestNoticeSubtext}>
+            Sign up for full AI diagnosis with detailed analysis and unlimited results
+          </Text>
         </View>
+
+        {/* No AI Response for guests - skip this section since ai_response is always null for guests */}
 
         {/* Limited YouTube Videos */}
         {diagnosisResult.youtube_videos && diagnosisResult.youtube_videos.length > 0 && (
@@ -490,6 +609,12 @@ const styles = StyleSheet.create({
     color: '#ecf0f1',
     marginVertical: 15,
   },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ecf0f1',
+    marginBottom: 10,
+  },
   input: {
     backgroundColor: '#34495e',
     borderRadius: 8,
@@ -550,12 +675,6 @@ const styles = StyleSheet.create({
   resultsSection: {
     marginTop: 30,
     marginBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ecf0f1',
-    marginBottom: 15,
   },
   aiResponseCard: {
     backgroundColor: '#2c3e50',
@@ -910,6 +1029,27 @@ const styles = StyleSheet.create({
     color: '#95a5a6',
     fontSize: 10,
     marginTop: 2,
+    fontStyle: 'italic',
+  },
+  // Guest Notice Styles
+  guestNotice: {
+    backgroundColor: '#2C8AA6',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  guestNoticeText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  guestNoticeSubtext: {
+    color: '#ecf0f1',
+    fontSize: 12,
+    textAlign: 'center',
     fontStyle: 'italic',
   },
 });
