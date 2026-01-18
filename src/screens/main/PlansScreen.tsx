@@ -9,14 +9,30 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useStripe } from '@stripe/stripe-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { diagnosisService } from '../../services/diagnosisService';
+import { paymentService } from '../../services/paymentService';
 import { supabase } from '../../utils/supabase';
 
 const PlansScreen = () => {
   const { user, refreshUser } = useAuth();
+
+  console.log('🎯 PlansScreen: Component initializing...');
+
+  let stripeHooks;
+  try {
+    stripeHooks = useStripe();
+    console.log('🎯 PlansScreen: useStripe hook successful');
+  } catch (error) {
+    console.error('🎯 PlansScreen: useStripe hook error:', error);
+    stripeHooks = { initPaymentSheet: null, presentPaymentSheet: null };
+  }
+
+  const { initPaymentSheet, presentPaymentSheet } = stripeHooks;
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
 
   // Usage state
   const [usageInfo, setUsageInfo] = useState({
@@ -48,36 +64,118 @@ const PlansScreen = () => {
   };
 
   const handlePlanSelection = async (planName: string) => {
+    console.log('🚀 PlansScreen: handlePlanSelection called with planName:', planName);
+    console.log('🚀 PlansScreen: Current usageInfo.planType:', usageInfo.planType);
+    console.log('🚀 PlansScreen: User:', user?.email, user?.id);
+
     if (planName === usageInfo.planType) {
+      console.log('🚀 PlansScreen: Same plan selected, showing alert');
       Alert.alert('Current Plan', 'This is already your current plan.');
       return;
     }
 
     if (planName === 'Basic') {
+      console.log('🚀 PlansScreen: Basic plan selected, showing downgrade alert');
       Alert.alert('Downgrade Not Available', 'Please contact support to downgrade your plan.');
       return;
     }
 
-    setLoading(true);
+    console.log('🚀 PlansScreen: Setting payment loading for plan:', planName);
+
+    // Check if Stripe hooks are available
+    if (!initPaymentSheet || !presentPaymentSheet) {
+      console.error('🚀 PlansScreen: Stripe hooks not available');
+      Alert.alert('Payment Error', 'Payment system not initialized. Please restart the app.');
+      return;
+    }
+
+    setPaymentLoading(planName);
+
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ plan_type: planName })
-        .eq('id', user?.id);
+      console.log('🚀 PlansScreen: Getting plan details...');
 
-      if (error) throw error;
+      // Get plan details
+      const planPrice = paymentService.getPlanPrice(planName);
+      const billingCycle = paymentService.getPlanBillingCycle(planName);
 
-      await Promise.all([
-        refreshUser(),
-        fetchUsageInfo(),
-      ]);
+      console.log('🚀 PlansScreen: Plan details - price:', planPrice, 'billing:', billingCycle);
 
-      Alert.alert('Success', `Successfully upgraded to ${planName} plan!`);
+      // Create payment intent
+      console.log('🚀 PlansScreen: Creating payment intent...');
+      const { paymentIntent, publishableKey } = await paymentService.createPaymentIntent({
+        planName,
+        planPrice,
+        billingCycle,
+      });
+
+      console.log('🚀 PlansScreen: Payment intent created successfully');
+      console.log('🚀 PlansScreen: PublishableKey received:', publishableKey ? 'Yes' : 'No');
+
+      // Initialize payment sheet
+      console.log('🚀 PlansScreen: Initializing payment sheet...');
+      const { error: initError } = await initPaymentSheet({
+        merchantDisplayName: 'MechMate AI',
+        paymentIntentClientSecret: paymentIntent,
+        defaultBillingDetails: {
+          email: user?.email,
+        },
+      });
+
+      if (initError) {
+        console.error('🚀 PlansScreen: Payment sheet init error:', initError);
+        console.error('🚀 PlansScreen: Init error details:', JSON.stringify(initError, null, 2));
+        Alert.alert('Payment Error', 'Failed to initialize payment. Please try again.');
+        return;
+      }
+
+      console.log('🚀 PlansScreen: Payment sheet initialized successfully');
+
+      // Present payment sheet
+      console.log('🚀 PlansScreen: Presenting payment sheet...');
+      const { error: paymentError } = await presentPaymentSheet();
+
+      if (paymentError) {
+        if (paymentError.code === 'Canceled') {
+          console.log('🚀 PlansScreen: Payment canceled by user');
+          return;
+        }
+        console.error('🚀 PlansScreen: Payment error:', paymentError);
+        console.error('🚀 PlansScreen: Payment error details:', JSON.stringify(paymentError, null, 2));
+        Alert.alert('Payment Failed', paymentError.message || 'Payment failed. Please try again.');
+        return;
+      }
+
+      console.log('🚀 PlansScreen: Payment succeeded!');
+
+      // Payment succeeded
+      Alert.alert(
+        'Payment Successful!',
+        `Welcome to ${planName}! Your plan will be activated shortly.`,
+        [
+          {
+            text: 'OK',
+            onPress: async () => {
+              console.log('🚀 PlansScreen: Refreshing user data after successful payment...');
+              // Refresh user data after successful payment
+              await Promise.all([
+                refreshUser(),
+                fetchUsageInfo(),
+              ]);
+            }
+          }
+        ]
+      );
+
     } catch (error) {
-      console.error('Error updating plan:', error);
-      Alert.alert('Error', 'Failed to update plan. Please try again.');
+      console.error('🚀 PlansScreen: Error in plan selection catch block:', error);
+      console.error('🚀 PlansScreen: Error stack:', (error as Error).stack);
+      Alert.alert(
+        'Payment Error',
+        'Failed to process payment. Please try again or contact support.'
+      );
     } finally {
-      setLoading(false);
+      console.log('🚀 PlansScreen: Clearing payment loading state');
+      setPaymentLoading(null);
     }
   };
 
@@ -189,12 +287,12 @@ const PlansScreen = () => {
                   style={[
                     styles.selectButton,
                     isCurrentPlan && styles.currentPlanButton,
-                    loading && styles.disabledButton
+                    (loading || paymentLoading) && styles.disabledButton
                   ]}
                   onPress={() => handlePlanSelection(plan.name)}
-                  disabled={loading}
+                  disabled={loading || paymentLoading !== null}
                 >
-                  {loading ? (
+                  {paymentLoading === plan.name ? (
                     <ActivityIndicator color="#fff" size="small" />
                   ) : (
                     <Text style={styles.selectButtonText}>
@@ -217,15 +315,21 @@ const PlansScreen = () => {
               <View style={styles.usageRow}>
                 <Text style={styles.usageLabel}>Daily:</Text>
                 <Text style={styles.usageValue}>
-                  {usageInfo.usage.daily_used}/{usageInfo.limits.daily === 999 ? '∞' : usageInfo.limits.daily}
+                  {usageInfo.usage.daily_used}/{
+                    (usageInfo.planType === 'Performance' || usageInfo.planType === 'Ultimate')
+                      ? usageInfo.limits.weekly  // Monthly limit displayed as daily for these plans
+                      : (usageInfo.limits.daily === 999 ? '∞' : usageInfo.limits.daily)
+                  }
                 </Text>
                 <View style={styles.usageBar}>
                   <View
                     style={[
                       styles.usageProgress,
                       {
-                        width: usageInfo.limits.daily === 999 ? '5%' :
-                               `${Math.min((usageInfo.usage.daily_used / usageInfo.limits.daily) * 100, 100)}%`
+                        width: (usageInfo.planType === 'Performance' || usageInfo.planType === 'Ultimate')
+                          ? `${Math.min((usageInfo.usage.daily_used / usageInfo.limits.weekly) * 100, 100)}%`
+                          : (usageInfo.limits.daily === 999 ? '5%' :
+                             `${Math.min((usageInfo.usage.daily_used / usageInfo.limits.daily) * 100, 100)}%`)
                       }
                     ]}
                   />

@@ -240,6 +240,121 @@ const DiagnosisScreen = () => {
     );
   };
 
+  // Helper function to render formatted text with teal labels for specific terms
+  const renderFormattedTextWithTealLabels = (text: string) => {
+    if (!text) return null;
+
+    const lines = text.split('\n');
+    const tealLabels = ['Description:', 'What\'s happening:', 'Quick fix:', 'Tools Needed:', 'Expected Results:'];
+    const tealTitlePhrases = [
+      'When to replace/seek professional help:',
+      'Regular maintenance intervals:',
+      'Best practices:',
+      'Warning signs to watch for:',
+      'Products that help prevent the issue:',
+      // Add variations without colon for more flexible matching
+      'Regular maintenance intervals',
+      'Best practices',
+      'Warning signs to watch for',
+      'Products that help prevent the issue'
+    ];
+
+    return (
+      <View style={styles.diagnosisTextContainer}>
+        {lines.map((line, index) => {
+          if (line.trim() === '') return null;
+
+          // Check for numbered actions (e.g., "1. **Inspect Wiper Blades**") and clean them up
+          const numberedActionMatch = line.match(/^\d+\.\s*\*\*([^*]+)\*\*/);
+          if (numberedActionMatch) {
+            return (
+              <Text key={index} style={styles.tealStepTitle}>
+                {numberedActionMatch[1]}
+              </Text>
+            );
+          }
+
+          // Check for standalone bold titles (prevention subtitles) - same format as step titles
+          const standaloneActionMatch = line.match(/^\*\*([^*]+)\*\*:?$/);
+          if (standaloneActionMatch) {
+            // Extract text between asterisks and preserve colon if it exists
+            const baseText = standaloneActionMatch[1];
+            const titleText = line.endsWith('**:') ? baseText + ':' : baseText;
+
+            return (
+              <Text key={index} style={styles.tealStepTitle}>
+                {titleText}
+              </Text>
+            );
+          }
+
+          // Check for teal title phrases - make only the title teal, handle standalone lines
+          const matchedTitlePhrase = tealTitlePhrases.find(phrase => {
+            const cleanLine = line.trim().toLowerCase();
+            const cleanPhrase = phrase.toLowerCase();
+            return cleanLine === cleanPhrase ||
+                   cleanLine.includes(cleanPhrase) ||
+                   cleanLine.startsWith(cleanPhrase);
+          });
+
+          if (matchedTitlePhrase) {
+            const cleanLine = line.trim();
+            const originalPhrase = tealTitlePhrases.find(phrase =>
+              phrase.toLowerCase() === matchedTitlePhrase.toLowerCase()
+            ) || matchedTitlePhrase;
+
+            // Check if it's a standalone title line (exact match or just the title)
+            if (cleanLine.toLowerCase() === originalPhrase.toLowerCase() ||
+                (cleanLine.endsWith(':') && cleanLine.toLowerCase().includes(originalPhrase.toLowerCase()))) {
+              // Standalone title line - use the original line text to preserve exact formatting
+              return (
+                <Text key={index} style={styles.tealLabel}>
+                  {cleanLine}
+                </Text>
+              );
+            } else {
+              // Title with content on same line - split them
+              const parts = line.split(originalPhrase);
+              return (
+                <View key={index} style={styles.tealLabelBlock}>
+                  {parts[0] && parts[0].trim() && <Text style={styles.sectionContent}>{parts[0].trim()}</Text>}
+                  <Text style={styles.tealLabel}>{originalPhrase}</Text>
+                  {parts[1] && parts[1].trim() && (
+                    <Text style={styles.tealDescription}>{parts[1].trim()}</Text>
+                  )}
+                </View>
+              );
+            }
+          }
+
+          // Check for teal labels - put description on new line
+          const matchedLabel = tealLabels.find(label => line.includes(label));
+          if (matchedLabel) {
+            const parts = line.split(matchedLabel);
+            return (
+              <View key={index} style={styles.tealLabelBlock}>
+                {parts[0] && <Text style={styles.sectionContent}>{parts[0]}</Text>}
+                <Text style={styles.tealLabel}>{matchedLabel}</Text>
+                {parts[1] && (
+                  <Text style={styles.tealDescription}>{parts[1].trim()}</Text>
+                )}
+              </View>
+            );
+          }
+
+          // Note: Bold titles are now handled by the standalone action match above
+
+          // Regular text
+          return (
+            <Text key={index} style={styles.sectionContent}>
+              {line}
+            </Text>
+          );
+        })}
+      </View>
+    );
+  };
+
   // Reset form when user pulls to refresh
   const resetDiagnosisForm = () => {
     setIssueDescription('');
@@ -467,25 +582,13 @@ const DiagnosisScreen = () => {
           obdiiCodes.trim()
         );
 
-        // Generate real automotive parts recommendations using AI
-        const detailedPartRecommendations = await edgeFunctionService.generateDetailedPartRecommendations(
-          {
-            make: vehicleData.make,
-            model: vehicleData.model,
-            year: vehicleData.year,
-            variant: vehicleData.variant,
-            odometer: vehicleData.odometer,
-            engine: vehicleData.engine,
-            vehicle_type: vehicleData.vehicle_type,
-            transmission: vehicleData.transmission,
-            drivetrain: vehicleData.drivetrain
-          },
-          aiDiagnosis,
-          obdiiCodes.trim() // Include OBDII codes for parts recommendations
-        );
+        // Use AI-generated parts from the diagnosis response
+        const aiGeneratedParts = aiDiagnosis.aiGeneratedParts || [];
 
-        // Use Groq's part recommendations directly (they already include search URLs and formatting)
-        const productLinks = detailedPartRecommendations.map((part, index) => {
+        console.log('AI Generated parts:', aiGeneratedParts);
+
+        // Use AI-generated part recommendations directly
+        const productLinks = aiGeneratedParts.map((part, index) => {
           console.log(`Processing part ${index + 1}:`, part);
 
           // Ensure part name exists and generate safe URL
@@ -531,6 +634,15 @@ const DiagnosisScreen = () => {
             productLinks
           );
         }
+
+        // Debug: Log the AI diagnosis structure
+        console.log('=== AI DIAGNOSIS STRUCTURE ===');
+        console.log('Title:', aiDiagnosis.title);
+        console.log('Diagnosis:', aiDiagnosis.diagnosis?.substring(0, 100) + '...');
+        console.log('Common Causes:', aiDiagnosis.commonCauses?.substring(0, 100) + '...');
+        console.log('Step By Step Routine:', aiDiagnosis.stepByStepRoutine?.substring(0, 100) + '...');
+        console.log('Raw Response:', aiDiagnosis.rawResponse?.substring(0, 200) + '...');
+        console.log('===============================');
 
         // Set result for display
         setDiagnosisResult({
@@ -1057,13 +1169,6 @@ const DiagnosisScreen = () => {
                 </View>
               )}
 
-              {/* Diagnosis Title */}
-              {diagnosisResult.ai_response.title && (
-                <Text style={styles.diagnosisTitle}>{diagnosisResult.ai_response.title}</Text>
-              )}
-
-              {renderFormattedText(diagnosisResult.ai_response.diagnosis)}
-
               {/* Key Info Cards */}
               <View style={styles.infoCards}>
                 {diagnosisResult.ai_response.estimatedCost && (
@@ -1082,23 +1187,39 @@ const DiagnosisScreen = () => {
                 )}
               </View>
 
-              {/* All Recommendations in One Clean List */}
-              <Text style={styles.subTitle}>Detailed Recommendations:</Text>
-              <View style={styles.recommendationsContainer}>
-                {diagnosisResult.ai_response.recommendations && diagnosisResult.ai_response.recommendations.map((recommendation: string, index: number) => (
-                  <View key={index} style={styles.recommendationItem}>
-                    <Text style={styles.recommendationNumber}>{index + 1}.</Text>
-                    <Text style={styles.recommendationText}>{recommendation}</Text>
+              {/* Diagnosis Title */}
+              {diagnosisResult.ai_response.title && (
+                <Text style={styles.diagnosisTitle}>{diagnosisResult.ai_response.title}</Text>
+              )}
+
+              {renderFormattedText(diagnosisResult.ai_response.diagnosis)}
+
+              {/* Common Causes Section */}
+              {diagnosisResult.ai_response.commonCauses && (
+                <>
+                  <Text style={styles.subTitle}>🔍 Common Causes:</Text>
+                  <View style={styles.commonCausesContainer}>
+                    {renderFormattedTextWithTealLabels(diagnosisResult.ai_response.commonCauses)}
                   </View>
-                ))}
-              </View>
+                </>
+              )}
+
+              {/* Step-by-step Routine Section */}
+              {diagnosisResult.ai_response.stepByStepRoutine && (
+                <>
+                  <Text style={styles.subTitle}>🔧 Step-by-step Routine:</Text>
+                  <View style={styles.stepByStepContainer}>
+                    {renderFormattedTextWithTealLabels(diagnosisResult.ai_response.stepByStepRoutine)}
+                  </View>
+                </>
+              )}
 
               {/* Prevention Tips Section */}
               {diagnosisResult.ai_response.prevention && (
                 <>
                   <Text style={styles.subTitle}>🛡️ Prevention Tips:</Text>
                   <View style={styles.preventionContainer}>
-                    <Text style={styles.preventionText}>{diagnosisResult.ai_response.prevention}</Text>
+                    {renderFormattedTextWithTealLabels(diagnosisResult.ai_response.prevention)}
                   </View>
                 </>
               )}
@@ -3181,6 +3302,51 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Common Causes and Step-by-step styles
+  commonCausesContainer: {
+    backgroundColor: '#2c3e50',
+    borderRadius: 8,
+    padding: 15,
+    marginTop: 5,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2C8AA6', // Teal color
+  },
+  stepByStepContainer: {
+    backgroundColor: '#2c3e50',
+    borderRadius: 8,
+    padding: 15,
+    marginTop: 5,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2C8AA6', // Teal color
+  },
+  tealLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  tealLabelBlock: {
+    marginBottom: 12,
+  },
+  tealLabel: {
+    fontSize: 15,
+    color: '#2C8AA6', // Teal color
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  tealDescription: {
+    fontSize: 15,
+    color: '#bdc3c7',
+    lineHeight: 22,
+    marginLeft: 0,
+    marginBottom: 8,
+  },
+  tealStepTitle: {
+    fontSize: 16,
+    color: '#2C8AA6', // Teal color
+    fontWeight: 'bold',
+    marginTop: 12,
+    marginBottom: 8,
   },
 });
 

@@ -424,15 +424,21 @@ const HomeScreen = () => {
               <View style={styles.usageRow}>
                 <Text style={styles.usageLabel}>Daily:</Text>
                 <Text style={styles.usageValue}>
-                  {usageInfo.usage.daily_used}/{usageInfo.limits.daily === 999 ? '∞' : usageInfo.limits.daily}
+                  {usageInfo.usage.daily_used}/{
+                    (usageInfo.planType === 'Performance' || usageInfo.planType === 'Ultimate')
+                      ? usageInfo.limits.weekly
+                      : (usageInfo.limits.daily === 999 ? '∞' : usageInfo.limits.daily)
+                  }
                 </Text>
                 <View style={styles.usageBar}>
                   <View
                     style={[
                       styles.usageProgress,
                       {
-                        width: usageInfo.limits.daily === 999 ? '5%' :
-                               `${Math.min((usageInfo.usage.daily_used / usageInfo.limits.daily) * 100, 100)}%`
+                        width: (usageInfo.planType === 'Performance' || usageInfo.planType === 'Ultimate')
+                          ? `${Math.min((usageInfo.usage.daily_used / usageInfo.limits.weekly) * 100, 100)}%`
+                          : (usageInfo.limits.daily === 999 ? '5%' :
+                             `${Math.min((usageInfo.usage.daily_used / usageInfo.limits.daily) * 100, 100)}%`)
                       }
                     ]}
                   />

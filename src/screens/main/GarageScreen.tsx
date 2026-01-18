@@ -37,6 +37,7 @@ const GarageScreen = () => {
     year: '',
     variant: '',
     vehicleType: 'Car',
+    transmission: '', // Empty to show placeholder
     engine: '', // Empty to show placeholder
     registration: '',
     odometer: '',
@@ -112,11 +113,8 @@ const GarageScreen = () => {
       year: '',
       variant: '',
       vehicleType: 'Car',
-      engine: '', // Empty to show placeholder
       transmission: 'Manual',
-      fuelCapacity: '',
-      engineSize: '',
-      drivetrain: '',
+      engine: '', // Empty to show placeholder
       registration: '',
       odometer: '',
     });
@@ -527,6 +525,21 @@ const GarageScreen = () => {
             <View style={styles.pickerContainer}>
               <View style={styles.pickerWrapper}>
                 <Picker
+                  selectedValue={formData.transmission}
+                  onValueChange={(value) => updateField('transmission', value)}
+                  style={styles.picker}
+                  itemStyle={styles.pickerItem}
+                >
+                  <Picker.Item label="Transmission" value="" enabled={false} />
+                  <Picker.Item label="Automatic" value="Automatic" />
+                  <Picker.Item label="Manual" value="Manual" />
+                </Picker>
+              </View>
+            </View>
+
+            <View style={styles.pickerContainer}>
+              <View style={styles.pickerWrapper}>
+                <Picker
                   selectedValue={formData.engine}
                   onValueChange={(value) => updateField('engine', value)}
                   style={styles.picker}
@@ -671,6 +684,21 @@ const GarageScreen = () => {
               value={formData.variant}
               onChangeText={(value) => updateField('variant', value)}
             />
+
+            <View style={styles.pickerContainer}>
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={formData.transmission}
+                  onValueChange={(value) => updateField('transmission', value)}
+                  style={styles.picker}
+                  itemStyle={styles.pickerItem}
+                >
+                  <Picker.Item label="Transmission" value="" enabled={false} />
+                  <Picker.Item label="Automatic" value="Automatic" />
+                  <Picker.Item label="Manual" value="Manual" />
+                </Picker>
+              </View>
+            </View>
 
             <View style={styles.pickerContainer}>
               <View style={styles.pickerWrapper}>
