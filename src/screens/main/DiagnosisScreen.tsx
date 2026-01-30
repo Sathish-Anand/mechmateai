@@ -464,7 +464,18 @@ const DiagnosisScreen = () => {
 
   const loadRecentDiagnoses = async () => {
     try {
-      const diagnoses = await diagnosisService.getUserDiagnoses(5, 0);
+      // Apply plan-based limits for history display
+      const planType = user?.plan_type || 'Basic';
+      let limit = 3; // Default limit for all non-Basic plans
+
+      if (planType === 'Basic') {
+        limit = 1; // Basic plan: only 1 history item
+      } else {
+        limit = 3; // All other plans (Essential, Performance, Ultimate): 3 history items
+      }
+
+      console.log(`Loading recent diagnoses for ${planType} plan with limit: ${limit}`);
+      const diagnoses = await diagnosisService.getUserDiagnoses(limit, 0);
       setRecentDiagnoses(diagnoses);
     } catch (error) {
       console.error('Error loading recent diagnoses:', error);

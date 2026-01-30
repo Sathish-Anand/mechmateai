@@ -44,6 +44,8 @@ supabse.env
 # generated native folders
 /ios
 /android
+/archive
+/docs
 
 # Development and setup files
 *.sql

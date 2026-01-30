@@ -6,8 +6,8 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
-// Stripe publishable key (you can move this to env config later)
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_51SqtewRQg4El5TTrqih4l2LAHEiKv0NLBZCS74kxM5tzsvL3Toj6e4QDZlcURQ3gmxr72Y6dDYooQEuIe0gk1And00nospOCSX';
+// Stripe publishable key from environment variables
+const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
 
 export default function App() {
   console.log('💰 App: Initializing with Stripe publishable key:', STRIPE_PUBLISHABLE_KEY ? 'Present' : 'Missing');

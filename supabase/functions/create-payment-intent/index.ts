@@ -70,18 +70,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // For testing or when auth fails, use a fallback user
+    // Require authentication - fail if no valid user
     if (!currentUser) {
-      console.log('🛠️ No valid user found, using fallback user ID')
-      currentUser = {
-        id: 'test-user-123',
-        email: 'test@example.com',
-        user_metadata: {},
-        app_metadata: {},
-        aud: 'authenticated',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      } as any;
+      console.error('❌ No valid user found, authentication required');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Authentication required'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
     }
 
     // Parse request body
