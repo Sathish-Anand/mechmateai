@@ -834,7 +834,7 @@ const DiagnosisScreen = () => {
 
   const handleSeeOlderDiagnoses = () => {
     // All users can now access history with plan-based limits
-    navigation.navigate('DiagnosisHistory');
+    navigation.navigate('MainTabs', { screen: 'DiagnosisHistory' });
   };
 
   const onRefresh = async () => {

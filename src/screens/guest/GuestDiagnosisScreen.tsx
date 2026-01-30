@@ -772,6 +772,7 @@ const GuestDiagnosisScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -783,9 +784,9 @@ const GuestDiagnosisScreen = () => {
           />
         }
       >
-        <View style={styles.header}>
+        <View style={styles.formHeader}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Guest Diagnosis</Text>
           <Text style={styles.subtitle}>Get a quick diagnosis without signing up</Text>
@@ -969,10 +970,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
   },
-  header: {
+  formHeader: {
     marginBottom: 30,
   },
-  backButton: {
+  backButtonText: {
     color: '#2C8AA6', // Teal color from logo
     fontSize: 16,
     marginBottom: 20,

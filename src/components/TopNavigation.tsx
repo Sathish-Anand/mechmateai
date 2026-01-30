@@ -14,11 +14,12 @@ import { useAuth } from '../context/AuthContext';
 
 interface TopNavigationProps {
   onAccountPress?: () => void;
+  onContactPress?: () => void;
   title?: string;
   layout?: 'center' | 'logo-center' | 'far-left' | 'far-right' | 'title-center' | 'title-left-logo-center';
 }
 
-const TopNavigation: React.FC<TopNavigationProps> = ({ onAccountPress, title, layout = 'title-left-logo-center' }) => {
+const TopNavigation: React.FC<TopNavigationProps> = ({ onAccountPress, onContactPress, title, layout = 'title-left-logo-center' }) => {
   const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const [screenData, setScreenData] = useState(Dimensions.get('window'));
@@ -51,6 +52,13 @@ const TopNavigation: React.FC<TopNavigationProps> = ({ onAccountPress, title, la
     setShowDropdown(false);
     if (onAccountPress) {
       onAccountPress();
+    }
+  };
+
+  const handleContactPress = () => {
+    setShowDropdown(false);
+    if (onContactPress) {
+      onContactPress();
     }
   };
 
@@ -291,6 +299,15 @@ const TopNavigation: React.FC<TopNavigationProps> = ({ onAccountPress, title, la
               >
                 <Text style={styles.menuIcon}>👤</Text>
                 <Text style={styles.menuText}>Account Settings</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={handleContactPress}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.menuIcon}>📞</Text>
+                <Text style={styles.menuText}>Contact Support</Text>
               </TouchableOpacity>
 
               <TouchableOpacity

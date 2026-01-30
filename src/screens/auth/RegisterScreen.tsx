@@ -82,7 +82,14 @@ const RegisterScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      {/* Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.topSection}>
         <View style={styles.logoContainer}>
           <Image
             source={require('../../../assets/logo_no_background_square.png')}
@@ -92,7 +99,9 @@ const RegisterScreen = () => {
         </View>
         <Text style={styles.title}>Create Account</Text>
         <Text style={styles.subtitle}>Join MechMate AI today</Text>
+      </View>
 
+      <ScrollView contentContainerStyle={styles.formSection}>
         <TextInput
           style={styles.input}
           placeholder="Full Name"
@@ -165,12 +174,6 @@ const RegisterScreen = () => {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.linkText}>← Back to Home</Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -181,13 +184,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a2332',
   },
-  scrollContent: {
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  backButtonText: {
+    color: '#2C8AA6', // Teal color from logo
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  topSection: {
     paddingHorizontal: 30,
-    paddingVertical: 50,
+    paddingTop: 20,
+    alignItems: 'center',
+  },
+  formSection: {
+    paddingHorizontal: 30,
+    paddingTop: 20,
+    paddingBottom: 50,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   logo: {
     width: 100,
@@ -204,7 +223,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#bdc3c7',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
   },
   input: {
     backgroundColor: '#34495e',

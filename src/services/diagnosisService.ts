@@ -211,7 +211,28 @@ export const diagnosisService = {
     ]);
 
     if (userProfile.error) {
-      throw new Error('Failed to fetch user profile');
+      console.warn('Failed to fetch user profile:', userProfile.error);
+      console.log('Using Basic plan as fallback');
+
+      // Fallback to Basic plan if profile doesn't exist yet
+      const planLimits = {
+        Basic: { daily: 1, weekly: 5 },
+        Essential: { daily: 10, weekly: 70 },
+        Performance: { daily: 999, weekly: 50 },
+        Ultimate: { daily: 999, weekly: 200 },
+      };
+
+      const currentUsage = usage.data || {
+        daily_used: 0,
+        weekly_used: 0,
+        total_used: 0,
+      };
+
+      return {
+        usage: currentUsage,
+        limits: planLimits.Basic,
+        planType: 'Basic',
+      };
     }
 
     const planLimits = {
@@ -383,6 +404,45 @@ export const diagnosisService = {
     const periodType = (userPlan === 'Performance' || userPlan === 'Ultimate') ? 'monthly' : 'weekly';
     if (currentUsage.weekly_used >= limits.weekly) {
       throw new Error(`${periodType.charAt(0).toUpperCase() + periodType.slice(1)} diagnosis limit reached (${limits.weekly}). Upgrade your plan for more diagnoses.`);
+    }
+  },
+
+  // Reset usage counts when plan changes
+  async resetUsageOnPlanChange(userId: string): Promise<void> {
+    try {
+      console.log('🔄 Resetting usage for user:', userId);
+
+      // First, get the current total_used to preserve it
+      const { data: currentUsage, error: fetchError } = await supabase
+        .from('diagnosis_usage')
+        .select('total_used')
+        .eq('user_id', userId)
+        .single();
+
+      const totalUsed = currentUsage?.total_used || 0;
+      console.log('📊 Current total_used value:', totalUsed);
+
+      const { error } = await supabase
+        .from('diagnosis_usage')
+        .upsert({
+          user_id: userId,
+          daily_used: 0,
+          weekly_used: 0,
+          total_used: totalUsed, // Preserve existing total_used
+          last_reset_date: new Date().toISOString().split('T')[0],
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        console.error('Failed to reset usage:', error);
+        throw error;
+      }
+
+      console.log('✅ Successfully reset usage counts for user:', userId);
+      console.log('📊 Reset daily_used and weekly_used to 0, preserved total_used:', totalUsed);
+    } catch (error) {
+      console.error('Failed to reset usage on plan change:', error);
+      throw error;
     }
   },
 

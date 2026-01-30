@@ -278,6 +278,19 @@ const HomeScreen = () => {
     }
   };
 
+  // Navigation functions for stats tiles
+  const navigateToDiagnosisHistory = () => {
+    navigation.navigate('MainTabs', { screen: 'DiagnosisHistory' });
+  };
+
+  const navigateToLogbook = () => {
+    navigation.navigate('Logbook');
+  };
+
+  const navigateToGarage = () => {
+    navigation.navigate('Garage');
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -396,18 +409,27 @@ const HomeScreen = () => {
         <View style={styles.statsContainer}>
           <Text style={styles.sectionTitle}>This Month</Text>
           <View style={styles.statsGrid}>
-            <View style={[styles.statCard, { borderLeftColor: '#2C8AA6' }]}>
+            <TouchableOpacity
+              style={[styles.statCard, { borderLeftColor: '#2C8AA6' }]}
+              onPress={navigateToDiagnosisHistory}
+            >
               <Text style={styles.statNumber}>{stats.thisMonthDiagnoses}</Text>
               <Text style={styles.statLabel}>Diagnoses</Text>
-            </View>
-            <View style={[styles.statCard, { borderLeftColor: '#E55A4F' }]}>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.statCard, { borderLeftColor: '#E55A4F' }]}
+              onPress={navigateToLogbook}
+            >
               <Text style={styles.statNumber}>{stats.thisMonthServices}</Text>
               <Text style={styles.statLabel}>Services</Text>
-            </View>
-            <View style={[styles.statCard, { borderLeftColor: '#F4B942' }]}>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.statCard, { borderLeftColor: '#F4B942' }]}
+              onPress={navigateToGarage}
+            >
               <Text style={styles.statNumber}>{stats.totalVehicles}</Text>
               <Text style={styles.statLabel}>Vehicles</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 

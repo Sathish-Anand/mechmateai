@@ -9,10 +9,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY');
 }
 
+// Check if local function URL is configured for development
+const edgeFunctionUrl = process.env.EXPO_PUBLIC_EDGE_FUNCTION_URL; // Use production functions by default
+
 console.log('Supabase config:', {
   url: supabaseUrl,
   anonKeyPrefix: supabaseAnonKey.slice(0, 8),
   anonKeyLength: supabaseAnonKey.length,
+  edgeFunctionUrl: edgeFunctionUrl || 'Using production functions',
 });
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -22,6 +26,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: false,
   },
+  // PRODUCTION MODE: Always use production functions (no local redirection)
 });
 
 // Database Types

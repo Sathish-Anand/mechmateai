@@ -2,7 +2,6 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useRoute } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 
 // Auth Screens
@@ -20,6 +19,7 @@ import LogbookScreen from '../screens/main/LogbookScreen';
 import GarageScreen from '../screens/main/GarageScreen';
 import PlansScreen from '../screens/main/PlansScreen';
 import AccountScreen from '../screens/main/AccountScreen';
+import ContactScreen from '../screens/main/ContactScreen';
 
 // Guest Screens
 import GuestDiagnosisScreen from '../screens/guest/GuestDiagnosisScreen';
@@ -58,6 +58,8 @@ const MainTabsWrapper = ({ navigation }: any) => {
         return 'Diagnosis';
       case 'Logbook':
         return 'Logbook';
+      case 'DiagnosisHistory':
+        return 'Diagnoses';
       case 'Plans':
         return 'Premium';
       default:
@@ -69,6 +71,7 @@ const MainTabsWrapper = ({ navigation }: any) => {
     <View style={{ flex: 1 }}>
       <TopNavigation
         onAccountPress={() => navigation.navigate('Account')}
+        onContactPress={() => navigation.navigate('Contact')}
         title={getTitleForRoute(currentTab)}
         layout="center"
       />
@@ -108,7 +111,17 @@ const MainTabsWrapper = ({ navigation }: any) => {
           options={{
             title: 'Garage',
             tabBarIcon: ({ focused }) => (
-              <Text style={{ fontSize: 22 }}>{focused ? '🚗' : '🚙'}</Text>
+              <Text style={{ fontSize: 22 }}>{focused ? '🛻' : '🚗'}</Text>
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Logbook"
+          component={LogbookScreen}
+          options={{
+            title: 'Logbook',
+            tabBarIcon: ({ focused }) => (
+              <Text style={{ fontSize: 22 }}>{focused ? '📖' : '📙'}</Text>
             ),
           }}
         />
@@ -123,12 +136,12 @@ const MainTabsWrapper = ({ navigation }: any) => {
           }}
         />
         <Tab.Screen
-          name="Logbook"
-          component={LogbookScreen}
+          name="DiagnosisHistory"
+          component={DiagnosisHistoryScreen}
           options={{
-            title: 'Logbook',
+            title: 'Diagnoses',
             tabBarIcon: ({ focused }) => (
-              <Text style={{ fontSize: 22 }}>{focused ? '📖' : '📔'}</Text>
+              <Text style={{ fontSize: 22 }}>{focused ? '📋' : '📄'}</Text>
             ),
           }}
         />
@@ -138,7 +151,7 @@ const MainTabsWrapper = ({ navigation }: any) => {
           options={{
             title: 'Premium',
             tabBarIcon: ({ focused }) => (
-              <Text style={{ fontSize: 22 }}>{focused ? '💍' : '💎'}</Text>
+              <Text style={{ fontSize: 22 }}>{focused ? '👑' : '💎'}</Text>
             ),
           }}
         />
@@ -160,10 +173,11 @@ const MainStackNavigator = () => {
         }}
       />
       <Stack.Screen
-        name="DiagnosisHistory"
-        component={DiagnosisHistoryScreen}
+        name="Contact"
+        component={ContactScreen}
         options={{
           headerShown: false,
+          presentation: 'modal'
         }}
       />
     </Stack.Navigator>

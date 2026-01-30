@@ -37,6 +37,14 @@ const AccountScreen: React.FC<AccountScreenProps> = ({ navigation }) => {
     loading: true,
   });
 
+  // Usage tracking state
+  const [usageInfo, setUsageInfo] = useState({
+    usage: { daily_used: 0, weekly_used: 0, total_used: 0 },
+    limits: { daily: 1, weekly: 5 },
+    planType: 'Basic',
+    loading: true,
+  });
+
   // Form state
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -48,6 +56,7 @@ const AccountScreen: React.FC<AccountScreenProps> = ({ navigation }) => {
   useEffect(() => {
     if (user?.id) {
       fetchStatistics();
+      fetchUsageInfo();
     }
   }, [user?.id]);
 
@@ -70,6 +79,20 @@ const AccountScreen: React.FC<AccountScreenProps> = ({ navigation }) => {
     } catch (error) {
       console.error('Error fetching account statistics:', error);
       setStatistics(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const fetchUsageInfo = async () => {
+    try {
+      setUsageInfo(prev => ({ ...prev, loading: true }));
+      const info = await diagnosisService.getUserUsageInfo();
+      setUsageInfo({
+        ...info,
+        loading: false,
+      });
+    } catch (error) {
+      console.error('Error fetching usage info:', error);
+      setUsageInfo(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -165,6 +188,7 @@ const AccountScreen: React.FC<AccountScreenProps> = ({ navigation }) => {
       await Promise.all([
         refreshUser(),
         fetchStatistics(),
+        fetchUsageInfo(),
       ]);
 
       // Update form data with refreshed user data
@@ -368,6 +392,63 @@ const AccountScreen: React.FC<AccountScreenProps> = ({ navigation }) => {
               </View>
             </View>
           </View>
+        </View>
+
+        {/* Usage Tracking */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Usage Tracking</Text>
+
+          {usageInfo.loading ? (
+            <View style={styles.usageLoadingContainer}>
+              <ActivityIndicator color="#2C8AA6" size="small" />
+              <Text style={styles.usageLoadingText}>Loading usage data...</Text>
+            </View>
+          ) : (
+            <View style={styles.usageStats}>
+              <View style={styles.usageRow}>
+                <Text style={styles.usageLabel}>Daily:</Text>
+                <Text style={styles.usageValue}>
+                  {usageInfo.usage.daily_used}/{
+                    (usageInfo.planType === 'Performance' || usageInfo.planType === 'Ultimate')
+                      ? usageInfo.limits.weekly
+                      : (usageInfo.limits.daily === 999 ? '∞' : usageInfo.limits.daily)
+                  }
+                </Text>
+                <View style={styles.usageBar}>
+                  <View
+                    style={[
+                      styles.usageProgress,
+                      {
+                        width: (usageInfo.planType === 'Performance' || usageInfo.planType === 'Ultimate')
+                          ? `${Math.min((usageInfo.usage.daily_used / usageInfo.limits.weekly) * 100, 100)}%`
+                          : (usageInfo.limits.daily === 999 ? '5%' :
+                             `${Math.min((usageInfo.usage.daily_used / usageInfo.limits.daily) * 100, 100)}%`)
+                      }
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.usageRow}>
+                <Text style={styles.usageLabel}>
+                  {usageInfo.planType === 'Performance' || usageInfo.planType === 'Ultimate' ? 'Monthly:' : 'Weekly:'}
+                </Text>
+                <Text style={styles.usageValue}>
+                  {usageInfo.usage.weekly_used}/{usageInfo.limits.weekly}
+                </Text>
+                <View style={styles.usageBar}>
+                  <View
+                    style={[
+                      styles.usageProgress,
+                      {
+                        width: `${Math.min((usageInfo.usage.weekly_used / usageInfo.limits.weekly) * 100, 100)}%`
+                      }
+                    ]}
+                  />
+                </View>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Plan Information */}
@@ -660,6 +741,50 @@ const styles = StyleSheet.create({
   planDescription: {
     color: '#bdc3c7',
     fontSize: 14,
+  },
+  // Usage Tracking Styles
+  usageLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  usageLoadingText: {
+    color: '#bdc3c7',
+    fontSize: 14,
+    marginLeft: 10,
+  },
+  usageStats: {
+    gap: 15,
+  },
+  usageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  usageLabel: {
+    color: '#bdc3c7',
+    fontSize: 14,
+    fontWeight: '500',
+    minWidth: 60,
+  },
+  usageValue: {
+    color: '#ecf0f1',
+    fontSize: 14,
+    fontWeight: '600',
+    minWidth: 50,
+  },
+  usageBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#34495e',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  usageProgress: {
+    height: '100%',
+    backgroundColor: '#2C8AA6',
+    borderRadius: 4,
   },
 });
 

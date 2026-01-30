@@ -26,7 +26,7 @@ const LogbookScreen = () => {
 
   // State management
   const [vehicles, setVehicles] = useState<any[]>([]);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('all');
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
   const [logbookEntries, setLogbookEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,12 +81,17 @@ const LogbookScreen = () => {
     if (vehicles.length > 0 && !formData.vehicleId) {
       const defaultVehicle = vehicles.find(v => v.is_default) || vehicles[0];
       setFormData(prev => ({ ...prev, vehicleId: defaultVehicle.id }));
+
+      // Set the default vehicle as selected for filtering if no vehicle is currently selected
+      if (!selectedVehicleId) {
+        setSelectedVehicleId(defaultVehicle.id);
+      }
     }
   }, [vehicles]);
 
   // Auto-refresh logbook entries when vehicle selection changes
   useEffect(() => {
-    if (user?.id && vehicles.length > 0) {
+    if (user?.id && vehicles.length > 0 && selectedVehicleId) {
       setFilterLoading(true);
       fetchLogbookEntries().finally(() => setFilterLoading(false));
     }
@@ -95,10 +100,9 @@ const LogbookScreen = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      await Promise.all([
-        fetchVehicles(),
-        fetchLogbookEntries(),
-      ]);
+      // First fetch vehicles
+      await fetchVehicles();
+      // fetchLogbookEntries will be called automatically by the useEffect when selectedVehicleId is set
     } catch (error) {
       console.error('Error fetching initial data:', error);
     } finally {
@@ -153,7 +157,7 @@ const LogbookScreen = () => {
         .eq('user_id', user.id)
         .order('date', { ascending: false });
 
-      if (selectedVehicleId !== 'all') {
+      if (selectedVehicleId && selectedVehicleId !== 'all') {
         query.eq('vehicle_id', selectedVehicleId);
       }
 

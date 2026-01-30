@@ -37,7 +37,14 @@ const LoginScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      {/* Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.topSection}>
         <View style={styles.logoContainer}>
           <Image
             source={require('../../../assets/logo_no_background_square.png')}
@@ -47,7 +54,9 @@ const LoginScreen = () => {
         </View>
         <Text style={styles.title}>Welcome Back</Text>
         <Text style={styles.subtitle}>Login to your MechMate AI account</Text>
+      </View>
 
+      <View style={styles.formSection}>
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -83,13 +92,6 @@ const LoginScreen = () => {
         >
           <Text style={styles.linkText}>Forgot Password?</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.linkText}>← Back to Home</Text>
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -100,14 +102,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a2332',
   },
-  content: {
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  backButtonText: {
+    color: '#2C8AA6', // Teal color from logo
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  topSection: {
+    paddingHorizontal: 30,
+    paddingTop: 20,
+    alignItems: 'center',
+  },
+  formSection: {
     flex: 1,
     paddingHorizontal: 30,
-    justifyContent: 'center',
+    paddingTop: 20,
+    justifyContent: 'flex-start',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
   },
   logo: {
     width: 120,
@@ -124,7 +142,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#bdc3c7',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
   },
   input: {
     backgroundColor: '#34495e',

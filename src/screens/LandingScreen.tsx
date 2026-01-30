@@ -23,7 +23,7 @@ const LandingScreen = () => {
             resizeMode="contain"
           />
           <Text style={styles.subtitle}>
-            Your AI-powered vehicle health assistant
+            Your AI Mate — Knows Before The Mechanic Does
           </Text>
         </View>
 
@@ -49,18 +49,6 @@ const LandingScreen = () => {
           >
             <Text style={styles.guestButtonText}>Try Diagnosis (Guest)</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Features */}
-        <View style={styles.featuresContainer}>
-          <Text style={styles.featuresTitle}>Features:</Text>
-          <View style={styles.featuresList}>
-            <Text style={styles.featureItem}>• AI-powered vehicle diagnosis</Text>
-            <Text style={styles.featureItem}>• Maintenance logbook</Text>
-            <Text style={styles.featureItem}>• Vehicle management</Text>
-            <Text style={styles.featureItem}>• YouTube repair guides</Text>
-            <Text style={styles.featureItem}>• Parts recommendations</Text>
-          </View>
         </View>
       </View>
     </SafeAreaView>

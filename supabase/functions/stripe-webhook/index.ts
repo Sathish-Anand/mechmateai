@@ -100,6 +100,43 @@ async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
 
     if (profileError) {
       console.error('Error updating user plan:', profileError)
+    } else {
+      // Reset usage counts when plan changes
+      console.log('🔄 Resetting usage counts for plan change...')
+      try {
+        // First, get the current total_used to preserve it
+        const { data: currentUsage, error: fetchError } = await supabaseClient
+          .from('diagnosis_usage')
+          .select('total_used')
+          .eq('user_id', user_id)
+          .single()
+
+        const totalUsed = currentUsage?.total_used || 0
+        console.log('📊 Current total_used value:', totalUsed)
+
+        // Now reset daily/weekly while preserving total_used
+        const { error: usageResetError } = await supabaseClient
+          .from('diagnosis_usage')
+          .upsert({
+            user_id,
+            daily_used: 0,
+            weekly_used: 0,
+            total_used: totalUsed,
+            last_reset_date: new Date().toISOString().split('T')[0],
+            updated_at: new Date().toISOString(),
+          })
+
+        if (usageResetError) {
+          console.error('⚠️ Warning: Could not reset usage counts:', usageResetError)
+          // Don't fail the entire operation if usage reset fails
+        } else {
+          console.log('✅ Successfully reset usage counts for plan change')
+          console.log('📊 Reset daily_used and weekly_used to 0, preserved total_used:', totalUsed)
+        }
+      } catch (usageError) {
+        console.error('⚠️ Warning: Error resetting usage counts:', usageError)
+        // Don't fail the entire operation if usage reset fails
+      }
     }
 
     // Create plan change record

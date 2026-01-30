@@ -119,6 +119,7 @@ const PlansScreen = () => {
         defaultBillingDetails: {
           email: user?.email,
         },
+        allowsDelayedPaymentMethods: false,
       });
 
       if (initError) {
@@ -147,23 +148,60 @@ const PlansScreen = () => {
 
       console.log('🚀 PlansScreen: Payment succeeded!');
 
-      // Payment succeeded
+      // Verify payment with backend before updating plan
+      console.log('🚀 PlansScreen: Verifying payment with backend...');
+      try {
+        // Call a backend function to verify payment and update plan
+        const { data: verificationData, error: verificationError } = await supabase.functions.invoke('verify-payment', {
+          body: {
+            paymentIntentClientSecret: paymentIntent,
+            planName,
+            userId: user?.id,
+          }
+        });
+
+        if (verificationError) {
+          console.error('🚀 PlansScreen: Payment verification failed:', verificationError);
+          Alert.alert('Verification Error', 'Payment verification failed. Please contact support if you were charged.');
+          return;
+        }
+
+        if (verificationData?.success) {
+          console.log('🚀 PlansScreen: Payment verified and plan updated successfully');
+        } else {
+          console.error('🚀 PlansScreen: Payment verification returned false');
+          Alert.alert('Payment Error', 'Payment could not be verified. Please contact support.');
+          return;
+        }
+      } catch (verificationError) {
+        console.error('🚀 PlansScreen: Payment verification error:', verificationError);
+        Alert.alert('Verification Error', 'Unable to verify payment. Please contact support if you were charged.');
+        return;
+      }
+
+      // Payment succeeded - immediately refresh without waiting for user interaction
+      console.log('🚀 PlansScreen: Refreshing user data after successful payment...');
+
+      // Extended delay to allow database propagation and usage reset
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Refresh user data after successful payment
+      await Promise.all([
+        refreshUser(),
+        fetchUsageInfo(),
+      ]);
+
+      console.log('🚀 PlansScreen: User data refresh completed');
+
+      // Additional usage info refresh to ensure reset is reflected
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await fetchUsageInfo();
+      console.log('🚀 PlansScreen: Additional usage info refresh completed');
+
+      // Show success message after refresh is complete
       Alert.alert(
         'Payment Successful!',
-        `Welcome to ${planName}! Your plan will be activated shortly.`,
-        [
-          {
-            text: 'OK',
-            onPress: async () => {
-              console.log('🚀 PlansScreen: Refreshing user data after successful payment...');
-              // Refresh user data after successful payment
-              await Promise.all([
-                refreshUser(),
-                fetchUsageInfo(),
-              ]);
-            }
-          }
-        ]
+        `Welcome to ${planName}! Your plan has been activated and updated.`
       );
 
     } catch (error) {

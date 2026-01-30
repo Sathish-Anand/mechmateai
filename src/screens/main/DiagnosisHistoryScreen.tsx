@@ -201,7 +201,7 @@ const DiagnosisHistoryScreen = () => {
       [
         {
           text: 'Upgrade Now',
-          onPress: () => navigation.navigate('Plans'),
+          onPress: () => navigation.navigate('MainTabs', { screen: 'Plans' }),
         },
         {
           text: 'Maybe Later',
@@ -238,7 +238,7 @@ const DiagnosisHistoryScreen = () => {
           </Text>
           <TouchableOpacity
             style={styles.upgradeFooterButton}
-            onPress={handleUpgradePrompt}
+            onPress={() => navigation.navigate('MainTabs', { screen: 'Plans' })}
           >
             <Text style={styles.upgradeFooterButtonText}>⚡ Upgrade Now</Text>
           </TouchableOpacity>
@@ -252,15 +252,6 @@ const DiagnosisHistoryScreen = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.headerButtonText}>‹ Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Diagnosis History</Text>
-          <TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}>
-            <Text style={styles.headerButtonText}>🏠 Home</Text>
-          </TouchableOpacity>
-        </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2C8AA6" />
           <Text style={styles.loadingText}>Loading diagnosis history...</Text>
@@ -271,32 +262,23 @@ const DiagnosisHistoryScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.headerButtonText}>‹ Back</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Diagnosis History</Text>
-          {userPlan === 'Basic' && (
-            <Text style={styles.headerSubtitle}>
-              {userPlan} Plan: {diagnoses.length}/1 diagnosis
-            </Text>
-          )}
-          {(userPlan === 'Essential' || userPlan === 'Performance') && (
-            <Text style={styles.headerSubtitle}>
-              {userPlan} Plan: {diagnoses.length}/5 diagnoses
-            </Text>
-          )}
-          {userPlan === 'Ultimate' && (
-            <Text style={styles.headerSubtitle}>
-              Ultimate Plan: Unlimited access
-            </Text>
-          )}
-        </View>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}>
-          <Text style={styles.headerButtonText}>🏠 Home</Text>
-        </TouchableOpacity>
+      {/* Plan Info Section */}
+      <View style={styles.planInfoSection}>
+        {userPlan === 'Basic' && (
+          <Text style={styles.planInfoText}>
+            {userPlan} Plan: {diagnoses.length}/1 diagnosis
+          </Text>
+        )}
+        {(userPlan === 'Essential' || userPlan === 'Performance') && (
+          <Text style={styles.planInfoText}>
+            {userPlan} Plan: {diagnoses.length}/5 diagnoses
+          </Text>
+        )}
+        {userPlan === 'Ultimate' && (
+          <Text style={styles.planInfoText}>
+            Ultimate Plan: Unlimited access
+          </Text>
+        )}
       </View>
 
       {/* Diagnosis List */}
@@ -455,40 +437,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a2332',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+  planInfoSection: {
     backgroundColor: '#2c3e50',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#34495e',
-  },
-  headerCenter: {
     alignItems: 'center',
-    flex: 1,
   },
-  headerButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  headerButtonText: {
-    color: '#2C8AA6',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ecf0f1',
-  },
-  headerSubtitle: {
-    fontSize: 12,
+  planInfoText: {
+    fontSize: 14,
     color: '#95a5a6',
-    marginTop: 2,
     textAlign: 'center',
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,

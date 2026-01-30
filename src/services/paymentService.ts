@@ -16,6 +16,13 @@ class PaymentService {
     console.log('🔥 PaymentService: Starting createPaymentIntent with request:', request);
 
     try {
+      // Add authentication debugging
+      const session = await supabase.auth.getSession();
+      console.log('🔍 PaymentService: Session check:', session.data.session ? 'Has session' : 'No session');
+      console.log('🔍 PaymentService: User:', session.data.session?.user?.email);
+      console.log('🔍 PaymentService: Token expires:', session.data.session?.expires_at ? new Date(session.data.session.expires_at * 1000) : 'No expiry');
+      console.log('🔍 PaymentService: Current time:', new Date());
+
       console.log('🔥 PaymentService: Calling supabase.functions.invoke with body:', request);
 
       const { data, error } = await supabase.functions.invoke('create-payment-intent', {

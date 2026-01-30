@@ -72,6 +72,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
     try {
+      console.log('📋 Fetching user profile for:', supabaseUser.id);
+
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -79,7 +81,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('❌ Error fetching profile:', error);
+        console.log('🔄 Profile not found, using defaults but will retry soon');
+
+        // Don't immediately default to Basic - instead, try to create the profile first
+        if (error.code === 'PGRST116') { // Profile not found
+          console.log('💡 Attempting to create missing profile...');
+
+          try {
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: supabaseUser.id,
+                name: supabaseUser.user_metadata?.name || '',
+                plan_type: 'Basic',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .select()
+              .single();
+
+            if (!createError && newProfile) {
+              console.log('✅ Created new profile successfully');
+              setUser({
+                ...newProfile,
+                email: supabaseUser.email!,
+              });
+              setIsLoading(false);
+              return;
+            }
+          } catch (createErr) {
+            console.error('❌ Failed to create profile:', createErr);
+          }
+        }
+
+        // Fallback to basic user data
+        console.log('⚠️ Using fallback user data');
         setUser({
           id: supabaseUser.id,
           email: supabaseUser.email!,
@@ -89,13 +126,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           plan_type: 'Basic',
         });
       } else {
+        console.log('✅ Profile fetched successfully:', profile.plan_type);
         setUser({
           ...profile,
           email: supabaseUser.email!,
         });
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('❌ Error fetching user profile:', error);
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
